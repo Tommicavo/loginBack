@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('email')->unique();
             $table->string('password');
+            $table->boolean('isAuth')->default(0);
             $table->timestamps();
         });
     }

@@ -43,9 +43,12 @@ class AccountController extends Controller
         $account = new Account();
         $account->fill($data);
         $account->slug = Str::slug($account->name, '-');
+        $account->isAuth = true;
         $account->save();
 
-        $response = ['slug' => $account->slug, 'status' => 'signinOk'];
+        $accountData = ['slug' => $account->slug, 'id' => $account->id];
+        $response = ['accountData' => $accountData, 'status' => 'signinOk'];
+
         return response()->json($response);
     }
 
@@ -71,7 +74,6 @@ class AccountController extends Controller
             return response()->json($response);
         }
 
-
         $account = Account::where('email', $data['email'])->first();
         if (!$account) {
             $response = ['message' => 'There are no signed accounts with this email', 'status' => 'deniedEmail'];
@@ -83,14 +85,41 @@ class AccountController extends Controller
             return response()->json($response);
         }
 
-        $response = ['slug' => $account->slug, 'status' => 'loginOk'];
+        $account->isAuth = true;
+        $account->save();
+
+        $accountData = ['slug' => $account->slug, 'id' => $account->id];
+        $response = ['accountData' => $accountData, 'status' => 'loginOk'];
+
         return response()->json($response);
     }
 
-    public function getAccount(string $slug)
+    public function getAccount(Request $request, string $slug)
     {
+        $data = $request->all();
+        $loggedId = $data['id'];
+
         $account = Account::where('slug', $slug)->first();
         if (!$account) return response(null, 404);
-        return response()->json($account);
+        if ($account->id != $loggedId) {
+            $response = ['status' => 'denied'];
+            return response()->json($response);
+        }
+
+        $response = ['status' => 'ok', 'name' => $account->name];
+        return response()->json($response);
+    }
+
+    public function logout(Request $request)
+    {
+        $data = $request->all();
+
+        $account = Account::find($data['id']);
+        if (!$account) return response(null, 404);
+        $account->isAuth = false;
+        $account->save();
+
+        $response = ['status' => 'loggedOut'];
+        return response()->json($response);
     }
 }
